@@ -25,3 +25,14 @@ async fn main() {
         .await
         .unwrap();
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::health_check;
+
+    #[tokio::test]
+    async fn health_ckeck_succeds() {
+        let response = health_check().await;
+        assert!(response.is_success())
+    }
+}
