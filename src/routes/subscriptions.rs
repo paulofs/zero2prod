@@ -31,8 +31,10 @@ pub async fn subscribe(
     .await
     {
         Ok(_) => StatusCode::OK,
-        Err(e) => {println!("Failed to execute query: {}", e);
-            StatusCode::INTERNAL_SERVER_ERROR},
+        Err(e) => {
+            println!("Failed to execute query: {}", e);
+            StatusCode::INTERNAL_SERVER_ERROR
+        }
     }
 }
 
@@ -81,7 +83,7 @@ async fn using_connection_extractor(
         .await
         .map_err(internal_error)
 }
-*/ 
+*/
 /// Utility function for mapping any error into a `500 Internal Server Error`
 /// response.
 fn internal_error<E>(err: E) -> (StatusCode, String)

@@ -3,7 +3,7 @@ Following the book [Zero To Production In Rust](https://www.zero2prod.com/index.
 
 - [x] Chapter 1 - Getting Started
 - [x] Chapter 2 - Building An Email Newsletter
-- [ ] Chapter 3 - Sign Up A New Subscriber
+- [x] Chapter 3 - Sign Up A New Subscriber
 - [ ] Chapter 4 - Telemetry
 - [ ] Chapter 5 - Going Live
 - [ ] Chapter 6 - Reject Invalid Subscribers 1
