@@ -1,11 +1,11 @@
 //! src/startup.rs
-// REMOVE EVERYTHING BELLOW
+// see: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs 
 use std::net::TcpListener;
 
-use crate::routes::{health_check, subscribe};
+use crate::routes::{health_check, subscribe, using_connection_pool_extractor};
 use axum::{
-    routing::{get, post, IntoMakeService},
-    Router, Extension,
+    routing::{get, IntoMakeService},
+    Router,
 };
 use hyper::server::conn::AddrIncoming;
 use sqlx::{Pool, Postgres};
@@ -16,9 +16,11 @@ pub fn run(
 ) -> hyper::Result<hyper::Server<AddrIncoming, IntoMakeService<Router>>> {
     let app = Router::new()
         .route("/health_check", get(health_check))
-        .route("/subscriptions", post(subscribe))
-        .layer(Extension(connection));
+        .route("/subscriptions", get(using_connection_pool_extractor).post(subscribe))
+        .with_state(connection);
 
     let server = axum::Server::from_tcp(listener)?.serve(app.into_make_service());
     Ok(server)
 }
+
+
