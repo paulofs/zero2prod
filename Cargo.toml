@@ -17,6 +17,7 @@ name = "zero2prod"
 axum = "0.6.20"
 hyper = "0.14.27"
 serde = { version = "1.0.188", features = ["derive"] }
+sqlx = { version = "0.7.1", default-features = false, features = ["runtime-tokio-native-tls", "postgres", "sqlite", "macros", "uuid", "chrono", "migrate"] }
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }
 
 [dev-dependencies]
