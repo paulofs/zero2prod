@@ -2,9 +2,13 @@
 use sqlx::postgres::PgPoolOptions;
 use std::{net::TcpListener, time::Duration};
 use zero2prod::{configuration::get_configuration, startup::run};
+use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 #[tokio::main]
 async fn main() -> hyper::Result<()> {
+    tracing_subscriber::registry()
+        .with(tracing_subscriber::fmt::layer())
+        .init();// Start logging
     let configuration = get_configuration().expect("Failed to read configuration.");
     let connection = PgPoolOptions::new()
         .max_connections(5)

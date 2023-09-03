@@ -9,12 +9,15 @@ use axum::{
 };
 use hyper::server::conn::AddrIncoming;
 use sqlx::{Pool, Postgres};
+
+use tower_http::trace::TraceLayer;
 // WARN: That's ugly
 pub fn run(
     listener: TcpListener,
     connection: Pool<Postgres>,
 ) -> hyper::Result<hyper::Server<AddrIncoming, IntoMakeService<Router>>> {
     let app = Router::new()
+        .layer(TraceLayer::new_for_http())
         .route("/health_check", get(health_check))
         .route(
             "/subscriptions",
