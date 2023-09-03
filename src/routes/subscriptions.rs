@@ -16,7 +16,15 @@ pub async fn subscribe(
     DatabaseConnection(mut connection_pool): DatabaseConnection,
     Form(form_data): Form<FormData>,
 ) -> StatusCode {
+    let request_id = Uuid::new_v4();
+    log::info!(
+        "request_id {} - Adding '{}' '{}' as a new subscriber",
+        request_id,
+        form_data.email,
+        form_data.name);
+
     let connection = connection_pool.acquire().await.unwrap();
+    log::info!("request_id {} - Saving new subscriber details in the database", request_id);
     match sqlx::query!(
         r#"
             INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -30,9 +38,12 @@ pub async fn subscribe(
     .execute(connection)
     .await
     {
-        Ok(_) => StatusCode::OK,
+        Ok(_) => {
+            log::info!("request_id {} - New subscriber details have been saved", request_id );
+            StatusCode::OK
+        },
         Err(e) => {
-            println!("Failed to execute query: {}", e);
+            log::error!("request_id {} - Failed to execute query: {:?}", request_id, e);
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
