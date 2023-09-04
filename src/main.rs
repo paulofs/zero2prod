@@ -20,7 +20,10 @@ async fn main() -> hyper::Result<()> {
         .connect_lazy(&configuration.database.connection_string().expose_secret())
         .expect("Failed to connect");
 
-    let address = format!("0.0.0.0:{}", configuration.application_port);
+    let address = format!(
+        "{}:{}",
+        configuration.application.host, configuration.application.port
+    );
 
     let listener = TcpListener::bind(address).expect("Failed to bind random port");
     run(listener, connection)?.await

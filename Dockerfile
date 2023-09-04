@@ -8,6 +8,8 @@ Copy . .
 # Set SQLX_OFFILINE to force sqlx to look at the saved metadata instead of trying
 # to query a live database
 ENV SQLX_OFFLINE true
+# Use production configurations
+ENV APP_ENVIRONMENT production
 # Build the binary
 # Using the release profile
 RUN cargo build --release
