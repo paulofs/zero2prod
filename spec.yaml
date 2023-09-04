@@ -30,6 +30,24 @@ services:
     instance_size_slug: basic-xxs
     # All incoming requests should be routed to our app
     routes:
+      - path: /
+    envs:
+      - key: APP_DATABASE__USERNAME
+        scope: RUN_TIME
+        value: ${newsletter.USERNAME}
+      - key: APP_DATABASE__PASSWORD
+        scope: RUN_TIME
+        value: ${newsletter.PASSWORD}
+      - key: APP_DATABASE__HOST
+        scope: RUN_TIME
+        value: ${newsletter.HOSTNAME}
+      - key: APP_DATABASE__PORT
+        scope: RUN_TIME
+        value: ${newsletter.PORT}
+      - key: APP_DATABASE__DATABASE_NAME
+        scope: RUN_TIME
+        value: ${newsletter.DATABASE}
+
 databases:
   # PG = Postgres
   - engine: PG
@@ -40,4 +58,3 @@ databases:
     size: db-s-dev-database
     # Postgres version - using the latest here
     version: "12"
-- path: /
