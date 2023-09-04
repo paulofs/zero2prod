@@ -11,6 +11,30 @@ use sqlx::{
     types::{chrono::Utc, Uuid},
     Acquire, PgPool, Postgres,
 };
+use unicode_segmentation::UnicodeSegmentation;
+
+/// Returns `true` if the input satisfies all our validation constraints
+/// on subscriber names, `false` otherwise.
+pub fn is_valid_name(s: &str) -> bool {
+    let is_empty_or_whitespace = s.trim().is_empty();
+
+    // A grapheme is defined by the Unicode standard as a "user-perceived"
+    // character: `å` is a single grapheme, but it is composed of two cha-
+    // racters // (`a` and `̊`).
+    //
+    // `graphemes` returns a interator over the graphemes in the input `s`.
+    // `true` specifies that we want to use the extended grapheme defini-
+    // tion set, the recommended one.
+    let is_too_long = s.graphemes(true).count() > 256;
+
+    // Iterate over all characters in the input `s` to check if any of them
+    // matches one of the characters in the forbidden array.
+    let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
+    let contains_forbidden_characters = s.chars().any(|g| forbidden_characters.contains(&g));
+
+    // Return `false` if any or our conditions have been violated
+    !(is_empty_or_whitespace || is_too_long || contains_forbidden_characters)
+}
 
 /// Creates a span at the beginning of the function invocation and automatically ataches all
 /// arguments passed to the function to the context of the span
