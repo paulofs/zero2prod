@@ -25,6 +25,7 @@ jobs:
       postgres:
         image: postgres:14
         env:
+          DB_HOST: localhost
           POSTGRES_USER: postgres
           POSTGRES_PASSWORD: password
           POSTGRES_DB: postgres
