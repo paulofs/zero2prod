@@ -3,8 +3,8 @@ use config::{Config, File};
 use secrecy::ExposeSecret;
 use secrecy::Secret;
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::ConnectOptions;
 use sqlx::postgres::{PgConnectOptions, PgSslMode};
+use sqlx::ConnectOptions;
 use tracing_log::log::LevelFilter;
 
 #[derive(serde::Deserialize)]
@@ -41,7 +41,8 @@ impl DatabaseSettings {
     }
 
     pub fn with_db(&self) -> PgConnectOptions {
-        self.without_db().database(&self.database_name)
+        self.without_db()
+            .database(&self.database_name)
             .log_statements(LevelFilter::Trace)
     }
 }
