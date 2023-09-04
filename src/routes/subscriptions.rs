@@ -1,5 +1,7 @@
 //! src/routes/subscriptions.rs
 // See: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
+
+use tracing::Instrument;
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts, State},
@@ -17,14 +19,17 @@ pub async fn subscribe(
     Form(form_data): Form<FormData>,
 ) -> StatusCode {
     let request_id = Uuid::new_v4();
-    log::info!(
-        "request_id {} - Adding '{}' '{}' as a new subscriber",
-        request_id,
-        form_data.email,
-        form_data.name);
+    let request_span = tracing::info_span!(
+        "Adding a new subscriber",
+        %request_id,
+        subscriber_email = %form_data.email,
+        subscriber_name = %form_data.name
+        );
+
+    let _request_span_guard = request_span.enter();
 
     let connection = connection_pool.acquire().await.unwrap();
-    log::info!("request_id {} - Saving new subscriber details in the database", request_id);
+    let query_span = tracing::info_span!("Saving new subscriber details in the database");
     match sqlx::query!(
         r#"
             INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -36,14 +41,15 @@ pub async fn subscribe(
         Utc::now()
     )
     .execute(connection)
+    .instrument(query_span)
     .await
     {
         Ok(_) => {
-            log::info!("request_id {} - New subscriber details have been saved", request_id );
+            tracing::info!("request_id {} - New subscriber details have been saved", request_id );
             StatusCode::OK
         },
         Err(e) => {
-            log::error!("request_id {} - Failed to execute query: {:?}", request_id, e);
+            tracing::error!("request_id {} - Failed to execute query: {:?}", request_id, e);
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
