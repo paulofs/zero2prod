@@ -1,2 +1,6 @@
 application:
   host: 0.0.0.0
+database:
+  username: "postgres"
+  password: "password"
+  database_name: "newsletter"
