@@ -30,4 +30,14 @@ services:
     instance_size_slug: basic-xxs
     # All incoming requests should be routed to our app
     routes:
+databases:
+  # PG = Postgres
+  - engine: PG
+    # Database name
+    name: newsletter
+    # Again, let's keep the bill lean
+    num_nodes: 1
+    size: db-s-dev-database
+    # Postgres version - using the latest here
+    version: "12"
 - path: /
