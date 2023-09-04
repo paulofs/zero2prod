@@ -1,4 +1,5 @@
 //! src/main.rs
+use secrecy::ExposeSecret;
 use sqlx::postgres::PgPoolOptions;
 use std::{net::TcpListener, time::Duration};
 use zero2prod::{
@@ -16,7 +17,7 @@ async fn main() -> hyper::Result<()> {
     let connection = PgPoolOptions::new()
         .max_connections(5)
         .acquire_timeout(Duration::from_secs(3))
-        .connect(&configuration.database.connection_string())
+        .connect(&configuration.database.connection_string().expose_secret())
         .await
         .expect("Failed to connect");
 
