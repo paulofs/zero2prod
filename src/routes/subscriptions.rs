@@ -18,7 +18,7 @@ use sqlx::{
     name = "Adding a new subscriber",
     skip(form, connection_pool),
     fields(
-        request_id = %Uuid::new_v4(),
+        //request_id = %Uuid::new_v4(),
         subscriber_email = %form.email,
         subscriber_name = %form.name
     )
