@@ -1,20 +1,25 @@
-use sqlx::Connection;
-use sqlx::Executor;
-use sqlx::PgConnection;
-use sqlx::PgPool;
+use sqlx::{Connection, Executor, PgConnection, PgPool};
 use std::net::TcpListener;
 use uuid::Uuid;
-use zero2prod::configuration::get_configuration;
-use zero2prod::configuration::DatabaseSettings;
+use zero2prod::{
+    configuration::{get_configuration, DatabaseSettings},
+    telemetry::{get_subscriber, init_subscriber},
+};
+use once_cell::sync::Lazy;
 
-/// Spin up as an instance of the application
-/// and returns it's address (i.e. http://localhost:XXXX)
 pub struct TestApp {
     pub address: String,
     pub db_pool: PgPool,
 }
 
+static TRACING: Lazy<()> = Lazy::new(|| {
+    let subscriber = get_subscriber("test".into(), "debug".into());
+    init_subscriber(subscriber);
+});
+
 pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+    // Start tracer
+    Lazy::force(&TRACING);
     // Create database
     let mut connection = PgConnection::connect(&config.connection_string_without_db())
         .await
