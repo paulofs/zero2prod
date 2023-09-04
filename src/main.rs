@@ -17,8 +17,7 @@ async fn main() -> hyper::Result<()> {
     let connection = PgPoolOptions::new()
         .max_connections(5)
         .acquire_timeout(Duration::from_secs(3))
-        .connect(&configuration.database.connection_string().expose_secret())
-        .await
+        .connect_lazy(&configuration.database.connection_string().expose_secret())
         .expect("Failed to connect");
 
     let address = format!("0.0.0.0:{}", configuration.application_port);
