@@ -6,7 +6,7 @@ use secrecy::Secret;
 #[derive(serde::Deserialize)]
 pub struct Settings {
     pub database: DatabaseSettings,
-    pub application_port: u16,
+    pub application: ApplicationSettings,
 }
 
 // Database Settings
@@ -42,12 +42,21 @@ impl DatabaseSettings {
     }
 }
 
+// Application Settings
+#[derive(serde::Deserialize)]
+pub struct ApplicationSettings {
+    pub port: u16,
+    pub host: String,
+}
+
 pub fn get_configuration() -> Result<Settings, config::ConfigError> {
     // Initialise the configuration reader
-    let settings = Config::builder()
-        .add_source(File::new("configuration.yaml", FileFormat::Yaml))
-        .build()?;
+    let mut settings = config::Config::default();
+    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
+    let configuration_directory = base_path.join("configuration");
 
+    // Read the `default` configuration file
+    settings.merge(config::File::from(configuration_directory.join("base")).required(true))?;
     // Try to convert the configuration values it read into
     // our Settings type
     settings.try_deserialize::<Settings>()
