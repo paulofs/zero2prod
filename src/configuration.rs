@@ -1,10 +1,11 @@
 //! src/configuration.rs
 use config::{Config, File};
-use secrecy::ExposeSecret;
-use secrecy::Secret;
+use secrecy::{ExposeSecret, Secret};
 use serde_aux::field_attributes::deserialize_number_from_string;
-use sqlx::postgres::{PgConnectOptions, PgSslMode};
-use sqlx::ConnectOptions;
+use sqlx::{
+    postgres::{PgConnectOptions, PgSslMode},
+    ConnectOptions,
+};
 use tracing_log::log::LevelFilter;
 
 #[derive(serde::Deserialize)]
