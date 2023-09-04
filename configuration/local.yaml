@@ -1,6 +1,6 @@
 application:
   host: 127.0.0.1
 database:
-  username: "paulo"
-  password: ""
-  database_name: "paulo"
+  username: "postgres"
+  password: "password"
+  database_name: "newsletter"
