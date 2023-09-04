@@ -1,7 +1,5 @@
 //! src/routes/subscriptions.rs
 // See: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
-
-use tracing::Instrument;
 use axum::{
     async_trait,
     extract::{FromRef, FromRequestParts, State},
@@ -9,50 +7,61 @@ use axum::{
     Form,
 };
 use sqlx::{
+    pool::PoolConnection,
     types::{chrono::Utc, Uuid},
-    Acquire, PgPool,
+    Acquire, PgPool, Postgres,
 };
 
-// Start simple: WARN: we always return a 200 OK
+/// Creates a span at the beginning of the function invocation and automatically ataches all
+/// arguments passed to the function to the context of the span
+#[tracing::instrument(
+    name = "Adding a new subscriber",
+    skip(form, connection_pool),
+    fields(
+        request_id = %Uuid::new_v4(),
+        subscriber_email = %form.email,
+        subscriber_name = %form.name
+    )
+)]
 pub async fn subscribe(
     DatabaseConnection(mut connection_pool): DatabaseConnection,
-    Form(form_data): Form<FormData>,
+    Form(form): Form<FormData>,
 ) -> StatusCode {
-    let request_id = Uuid::new_v4();
-    let request_span = tracing::info_span!(
-        "Adding a new subscriber",
-        %request_id,
-        subscriber_email = %form_data.email,
-        subscriber_name = %form_data.name
-        );
-
-    let _request_span_guard = request_span.enter();
-
-    let connection = connection_pool.acquire().await.unwrap();
-    let query_span = tracing::info_span!("Saving new subscriber details in the database");
-    match sqlx::query!(
-        r#"
-            INSERT INTO subscriptions (id, email, name, subscribed_at)
-            VALUES ($1, $2, $3, $4)
-            "#,
-        Uuid::new_v4(),
-        form_data.email,
-        form_data.name,
-        Utc::now()
-    )
-    .execute(connection)
-    .instrument(query_span)
-    .await
-    {
-        Ok(_) => {
-            tracing::info!("request_id {} - New subscriber details have been saved", request_id );
-            StatusCode::OK
-        },
+    match insert_subscriber(&mut connection_pool, &form).await {
+        Ok(_) => StatusCode::OK,
         Err(e) => {
-            tracing::error!("request_id {} - Failed to execute query: {:?}", request_id, e);
+            tracing::error!("Failed to execute query: {:?}", e);
             StatusCode::INTERNAL_SERVER_ERROR
         }
     }
+}
+
+#[tracing::instrument(
+    name = "Saving a new subscriber details in the database",
+    skip(form, connection_pool)
+)]
+pub async fn insert_subscriber(
+    connection_pool: &mut PoolConnection<Postgres>,
+    form: &FormData,
+) -> Result<(), sqlx::Error> {
+    let connection = connection_pool.acquire().await.unwrap();
+    sqlx::query!(
+        r#"
+    INSERT INTO subscriptions (id, email, name, subscribed_at)
+    VALUES ($1, $2, $3, $4)
+            "#,
+        Uuid::new_v4(),
+        form.email,
+        form.name,
+        Utc::now()
+    )
+    .execute(connection)
+    .await
+    .map_err(|e| {
+        tracing::error!("Failed to execute query: {:?}", e);
+        e
+    })?;
+    Ok(())
 }
 
 #[derive(serde::Deserialize)]
