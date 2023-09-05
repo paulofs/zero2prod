@@ -1,4 +1,5 @@
-//! src/domain.rs
+//! src/domain/subscriber_name.rs
+
 use ::unicode_segmentation::UnicodeSegmentation;
 
 #[derive(Debug)]
@@ -39,11 +40,6 @@ impl SubscriberName {
     }
 }
 
-pub struct NewSubscriber {
-    pub email: String,
-    pub name: SubscriberName,
-}
-
 #[cfg(test)]
 mod tests {
     use crate::domain::SubscriberName;
@@ -75,10 +71,10 @@ mod tests {
 
     #[test]
     fn names_containing_an_invalid_character_are_rejected() {
-        for name in &['/', '(', ')', '"', '<', '>', '\\', '{', '}' ] {
+        for name in &['/', '(', ')', '"', '<', '>', '\\', '{', '}'] {
             let name = name.to_string();
             assert_err!(SubscriberName::parse(name));
-        } 
+        }
     }
 
     #[test]
