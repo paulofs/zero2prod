@@ -29,8 +29,8 @@ pub async fn subscribe(
     DatabaseConnection(mut connection_pool): DatabaseConnection,
     Form(form): Form<FormData>,
 ) -> StatusCode {
-    let new_subscriber = match parse_subscriber(form) {
-        Ok(subscriber) => subscriber,
+    let new_subscriber = match form.try_into() {
+        Ok(form) => form,
         Err(_) => return StatusCode::BAD_REQUEST,
     };
     match insert_subscriber(&mut connection_pool, &new_subscriber).await {
@@ -38,11 +38,14 @@ pub async fn subscribe(
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
+impl TryFrom<FormData> for NewSubscriber {
+    type Error = String;
 
-pub fn parse_subscriber(form: FormData) -> Result<NewSubscriber, String> {
-    let name = SubscriberName::parse(form.name)?;
-    let email = SubscriberEmail::parse(form.email)?;
-    Ok(NewSubscriber { email, name })
+    fn try_from(value: FormData) -> Result<Self, Self::Error> {
+        let name = SubscriberName::parse(value.name)?;
+        let email = SubscriberEmail::parse(value.email)?;
+        Ok(Self { email, name })
+    }
 }
 
 #[tracing::instrument(
