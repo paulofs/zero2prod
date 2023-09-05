@@ -2,10 +2,10 @@
 // see: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
 use std::net::TcpListener;
 
-use crate::routes::{health_check, subscribe, using_connection_pool_extractor};
+use crate::routes::{health_check, subscribe};
 use axum::{
-    routing::{get, IntoMakeService},
-    Router,
+    routing::{get, post, IntoMakeService},
+    Extension, Router,
 };
 use hyper::server::conn::AddrIncoming;
 use sqlx::{Pool, Postgres};
@@ -20,14 +20,12 @@ use tracing::Level;
 // WARN: That's ugly
 pub fn run(
     listener: TcpListener,
-    connection: Pool<Postgres>,
+    db_pool: Pool<Postgres>,
 ) -> hyper::Result<hyper::Server<AddrIncoming, IntoMakeService<Router>>> {
     let app = Router::new()
         .route("/health_check", get(health_check))
-        .route(
-            "/subscriptions",
-            get(using_connection_pool_extractor).post(subscribe),
-        )
+        .route("/subscriptions", post(subscribe))
+        .layer(Extension(db_pool))
         .layer(
             ServiceBuilder::new()
                 .set_x_request_id(MakeRequestUuid)
@@ -41,9 +39,7 @@ pub fn run(
                         .on_response(DefaultOnResponse::new().include_headers(true)),
                 )
                 .propagate_x_request_id(),
-        )
-        .with_state(connection);
-
+        );
     let server = axum::Server::from_tcp(listener)?.serve(app.into_make_service());
     Ok(server)
 }

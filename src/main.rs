@@ -13,7 +13,7 @@ async fn main() -> hyper::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration.");
-    let connection_pool = PgPoolOptions::new()
+    let db_pool = PgPoolOptions::new()
         .max_connections(5)
         .acquire_timeout(std::time::Duration::from_secs(2))
         .connect_lazy_with(configuration.database.with_db());
@@ -24,5 +24,5 @@ async fn main() -> hyper::Result<()> {
     );
 
     let listener = TcpListener::bind(address).expect("Failed to bind random port");
-    run(listener, connection_pool)?.await
+    run(listener, db_pool)?.await
 }

@@ -1,15 +1,9 @@
 //! src/routes/subscriptions.rs
 // See: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
-use axum::{
-    async_trait,
-    extract::{FromRef, FromRequestParts, State},
-    http::{request::Parts, StatusCode},
-    Form,
-};
+use axum::{http::StatusCode, Extension, Form};
 use sqlx::{
-    pool::PoolConnection,
     types::{chrono::Utc, Uuid},
-    Acquire, PgPool, Postgres,
+    Pool, Postgres,
 };
 
 use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
@@ -18,7 +12,7 @@ use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 /// arguments passed to the function to the context of the span
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, connection_pool),
+    skip(form, db_pool),
     fields(
         //request_id = %Uuid::new_v4(),
         subscriber_email = %form.email,
@@ -26,18 +20,19 @@ use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
     )
 )]
 pub async fn subscribe(
-    DatabaseConnection(mut connection_pool): DatabaseConnection,
+    Extension(db_pool): Extension<Pool<Postgres>>,
     Form(form): Form<FormData>,
 ) -> StatusCode {
     let new_subscriber = match form.try_into() {
         Ok(form) => form,
         Err(_) => return StatusCode::BAD_REQUEST,
     };
-    match insert_subscriber(&mut connection_pool, &new_subscriber).await {
+    match insert_subscriber(&db_pool, &new_subscriber).await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
+
 impl TryFrom<FormData> for NewSubscriber {
     type Error = String;
 
@@ -50,13 +45,13 @@ impl TryFrom<FormData> for NewSubscriber {
 
 #[tracing::instrument(
     name = "Saving a new subscriber details in the database",
-    skip(new_subscriber, connection_pool)
+    skip(new_subscriber, db_pool)
 )]
 pub async fn insert_subscriber(
-    connection_pool: &mut PoolConnection<Postgres>,
+    db_pool: &Pool<Postgres>,
     new_subscriber: &NewSubscriber,
 ) -> Result<(), sqlx::Error> {
-    let connection = connection_pool.acquire().await.unwrap();
+    // let mut connection = connection_pool.acquire().await.unwrap();
     sqlx::query!(
         r#"
     INSERT INTO subscriptions (id, email, name, subscribed_at)
@@ -67,7 +62,7 @@ pub async fn insert_subscriber(
         new_subscriber.name.as_ref(),
         Utc::now()
     )
-    .execute(connection)
+    .execute(db_pool)
     .await
     .map_err(|e| {
         tracing::error!("Failed to execute query: {:?}", e);
@@ -80,53 +75,4 @@ pub async fn insert_subscriber(
 pub struct FormData {
     name: String,
     email: String,
-}
-
-// we can extract the connection pool with `State`
-pub async fn using_connection_pool_extractor(
-    State(pool): State<PgPool>,
-) -> Result<String, (StatusCode, String)> {
-    sqlx::query_scalar("select 'hello world from pg'")
-        .fetch_one(&pool)
-        .await
-        .map_err(internal_error)
-}
-
-// we can also write a custom extractor that grabs a connection from the pool
-// which setup is appropriate depends on your application
-pub struct DatabaseConnection(sqlx::pool::PoolConnection<sqlx::Postgres>);
-
-#[async_trait]
-impl<S> FromRequestParts<S> for DatabaseConnection
-where
-    PgPool: FromRef<S>,
-    S: Send + Sync,
-{
-    type Rejection = (StatusCode, String);
-
-    async fn from_request_parts(_parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-        let pool = PgPool::from_ref(state);
-
-        let conn = pool.acquire().await.map_err(internal_error)?;
-
-        Ok(Self(conn))
-    }
-}
-/*
-async fn using_connection_extractor(
-    DatabaseConnection(mut conn): DatabaseConnection,
-) -> Result<String, (StatusCode, String)> {
-    sqlx::query_scalar("select 'hello world from pg'")
-        .fetch_one(&mut *conn)
-        .await
-        .map_err(internal_error)
-}
-*/
-/// Utility function for mapping any error into a `500 Internal Server Error`
-/// response.
-fn internal_error<E>(err: E) -> (StatusCode, String)
-where
-    E: std::error::Error,
-{
-    (StatusCode::INTERNAL_SERVER_ERROR, err.to_string())
 }
