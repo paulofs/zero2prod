@@ -5,6 +5,7 @@ use secrecy::{ExposeSecret, Secret};
 
 use crate::domain::SubscriberEmail;
 
+#[derive(Clone)]
 pub struct EmailClient {
     http_client: Client,
     base_url: reqwest::Url,
@@ -40,8 +41,7 @@ impl EmailClient {
             html_body: html_content.to_owned(),
             text_body: text_content.to_owned(),
         };
-        self
-            .http_client
+        self.http_client
             .post(url)
             .header(
                 "X-Postmark-Server-Token",
@@ -73,7 +73,7 @@ mod tests {
         Fake, Faker,
     };
     use secrecy::Secret;
-    use wiremock::{matchers::any, Mock, MockServer, ResponseTemplate};
+    use wiremock::{matchers::{any, header_exists, header, path, method}, Mock, MockServer, ResponseTemplate};
 
     use crate::domain::SubscriberEmail;
     use crate::email_client::EmailClient;
@@ -85,7 +85,18 @@ mod tests {
         let sender = SubscriberEmail::parse(SafeEmail().fake()).unwrap();
         let email_client = EmailClient::new(mock_server.uri(), sender, Secret::new(Faker.fake()));
 
-        Mock::given(any())
+        struct SendEmailBodyMatcher;
+
+        impl wiremock::Match for SendEmailBodyMatcher {
+            fn matches(&self, request: &wiremock::Request) -> bool {
+                unimplemented!()
+            }
+        }
+
+        Mock::given(header_exists("X-Postmark-Server-Token"))
+            .and(header("Content-Type", "application/json"))
+            .and(path("/email"))
+            .and(method("POST"))
             .respond_with(ResponseTemplate::new(200))
             .expect(1)
             .mount(&mock_server)

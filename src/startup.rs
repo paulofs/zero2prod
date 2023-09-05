@@ -40,7 +40,7 @@ pub fn run(
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .layer(Extension(db_pool))
-        .layer(Extension(std::sync::Arc::new(email_client)))
+        .layer(Extension(email_client))
         .layer(tracer_middleware);
     let server = axum::Server::from_tcp(listener)?.serve(app.into_make_service());
     Ok(server)
