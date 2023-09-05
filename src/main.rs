@@ -3,6 +3,7 @@ use sqlx::postgres::PgPoolOptions;
 use std::net::TcpListener;
 use zero2prod::{
     configuration::get_configuration,
+    email_client::EmailClient,
     startup::run,
     telemetry::{get_subscriber, init_subscriber},
 };
@@ -23,6 +24,16 @@ async fn main() -> hyper::Result<()> {
         configuration.application.host, configuration.application.port
     );
 
+    let sender_email = configuration
+        .email_client
+        .sender()
+        .expect("Invalid sender email address.");
+    let email_client = EmailClient::new(
+        configuration.email_client.base_url,
+        sender_email,
+        configuration.email_client.authorization_token,
+    );
+
     let listener = TcpListener::bind(address).expect("Failed to bind random port");
-    run(listener, db_pool)?.await
+    run(listener, db_pool, email_client)?.await
 }

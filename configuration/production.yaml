@@ -5,3 +5,7 @@ database:
   password: "password"
   database_name: "newsletter"
   require_ssl: true
+email_client:
+  # Edit that with your api URL and autorized email
+  base_url: "https://api.postmarkapp.com"
+  sender_email: "something@gmail.com"
