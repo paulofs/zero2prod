@@ -16,7 +16,11 @@ name = "zero2prod"
 [dependencies]
 axum = "0.6.20"
 config = "0.13.3"
+fake = "2.8.0"
 hyper = "0.14.27"
+quickcheck = "1.0.3"
+quickcheck_macros = "1.0.0"
+rand = "0.8.5"
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde-aux = "4.2.0"
