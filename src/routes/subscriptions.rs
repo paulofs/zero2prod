@@ -12,7 +12,7 @@ use sqlx::{
     Acquire, PgPool, Postgres,
 };
 
-use crate::domain::{NewSubscriber, SubscriberName, SubscriberEmail};
+use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
 
 /// Creates a span at the beginning of the function invocation and automatically ataches all
 /// arguments passed to the function to the context of the span
@@ -29,25 +29,20 @@ pub async fn subscribe(
     DatabaseConnection(mut connection_pool): DatabaseConnection,
     Form(form): Form<FormData>,
 ) -> StatusCode {
-    let name = match SubscriberName::parse(form.name) {
-        Ok(name) => name,
-        // Return early if name is invalid, with a 400
+    let new_subscriber = match parse_subscriber(form) {
+        Ok(subscriber) => subscriber,
         Err(_) => return StatusCode::BAD_REQUEST,
-    };
-
-    let email = match SubscriberEmail::parse(form.email) {
-        Ok(email) => email,
-        // Return early if name is invalid, with a 400
-        Err(_) => return StatusCode::BAD_REQUEST,
-    };
-    let new_subscriber = NewSubscriber {
-        email,
-        name,
     };
     match insert_subscriber(&mut connection_pool, &new_subscriber).await {
         Ok(_) => StatusCode::OK,
         Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
+}
+
+pub fn parse_subscriber(form: FormData) -> Result<NewSubscriber, String> {
+    let name = SubscriberName::parse(form.name)?;
+    let email = SubscriberEmail::parse(form.email)?;
+    Ok(NewSubscriber { email, name })
 }
 
 #[tracing::instrument(
