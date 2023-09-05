@@ -2,7 +2,10 @@
 // see: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
 use std::net::TcpListener;
 
-use crate::{routes::{health_check, subscribe}, email_client::EmailClient};
+use crate::{
+    email_client::EmailClient,
+    routes::{health_check, subscribe},
+};
 use axum::{
     routing::{get, post, IntoMakeService},
     Extension, Router,
