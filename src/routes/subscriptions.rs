@@ -11,30 +11,8 @@ use sqlx::{
     types::{chrono::Utc, Uuid},
     Acquire, PgPool, Postgres,
 };
-use unicode_segmentation::UnicodeSegmentation;
 
-/// Returns `true` if the input satisfies all our validation constraints
-/// on subscriber names, `false` otherwise.
-pub fn is_valid_name(s: &str) -> bool {
-    let is_empty_or_whitespace = s.trim().is_empty();
-
-    // A grapheme is defined by the Unicode standard as a "user-perceived"
-    // character: `å` is a single grapheme, but it is composed of two cha-
-    // racters // (`a` and `̊`).
-    //
-    // `graphemes` returns a interator over the graphemes in the input `s`.
-    // `true` specifies that we want to use the extended grapheme defini-
-    // tion set, the recommended one.
-    let is_too_long = s.graphemes(true).count() > 256;
-
-    // Iterate over all characters in the input `s` to check if any of them
-    // matches one of the characters in the forbidden array.
-    let forbidden_characters = ['/', '(', ')', '"', '<', '>', '\\', '{', '}'];
-    let contains_forbidden_characters = s.chars().any(|g| forbidden_characters.contains(&g));
-
-    // Return `false` if any or our conditions have been violated
-    !(is_empty_or_whitespace || is_too_long || contains_forbidden_characters)
-}
+use crate::domain::{NewSubscriber, SubscriberName};
 
 /// Creates a span at the beginning of the function invocation and automatically ataches all
 /// arguments passed to the function to the context of the span
@@ -51,22 +29,28 @@ pub async fn subscribe(
     DatabaseConnection(mut connection_pool): DatabaseConnection,
     Form(form): Form<FormData>,
 ) -> StatusCode {
-    match insert_subscriber(&mut connection_pool, &form).await {
+    let name = match SubscriberName::parse(form.name) {
+        Ok(name) => name,
+        // Return early if name is invalid, with a 400
+        Err(_) => return StatusCode::BAD_REQUEST,
+    };
+    let new_subscriber = NewSubscriber {
+        email: form.email,
+        name,
+    };
+    match insert_subscriber(&mut connection_pool, &new_subscriber).await {
         Ok(_) => StatusCode::OK,
-        Err(e) => {
-            tracing::error!("Failed to execute query: {:?}", e);
-            StatusCode::INTERNAL_SERVER_ERROR
-        }
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
     }
 }
 
 #[tracing::instrument(
     name = "Saving a new subscriber details in the database",
-    skip(form, connection_pool)
+    skip(new_subscriber, connection_pool)
 )]
 pub async fn insert_subscriber(
     connection_pool: &mut PoolConnection<Postgres>,
-    form: &FormData,
+    new_subscriber: &NewSubscriber,
 ) -> Result<(), sqlx::Error> {
     let connection = connection_pool.acquire().await.unwrap();
     sqlx::query!(
@@ -75,8 +59,8 @@ pub async fn insert_subscriber(
     VALUES ($1, $2, $3, $4)
             "#,
         Uuid::new_v4(),
-        form.email,
-        form.name,
+        new_subscriber.email,
+        new_subscriber.name.as_ref(),
         Utc::now()
     )
     .execute(connection)
