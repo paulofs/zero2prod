@@ -6,7 +6,7 @@ Following the book [Zero To Production In Rust](https://www.zero2prod.com/index.
 - [x] Chapter 3 - Sign Up A New Subscriber
 - [x] Chapter 4 - Telemetry
 - [x] Chapter 5 - Going Live
-- [ ] Chapter 6 - Reject Invalid Subscribers 1
+- [x] Chapter 6 - Reject Invalid Subscribers 1
 - [ ] Chapter 7 - Reject Invalid Subscribers 2
 - [ ] Chapter 8 - Error Handling
 - [ ] Chapter 9 - Naive Newsletter Delivery
