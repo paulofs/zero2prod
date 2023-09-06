@@ -1,36 +1,53 @@
 //! src/routes/subscriptions.rs
 // See: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
-use axum::{http::StatusCode, Extension, Form};
+use axum::{debug_handler, http::StatusCode, Extension, Form};
 use sqlx::{
     types::{chrono::Utc, Uuid},
     Pool, Postgres,
 };
 
-use crate::domain::{NewSubscriber, SubscriberEmail, SubscriberName};
+use crate::{
+    domain::{NewSubscriber, SubscriberEmail, SubscriberName},
+    email_client::EmailClient,
+};
 
 /// Creates a span at the beginning of the function invocation and automatically ataches all
 /// arguments passed to the function to the context of the span
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, db_pool),
+    skip(form, db_pool, email_client),
     fields(
         //request_id = %Uuid::new_v4(),
         subscriber_email = %form.email,
         subscriber_name = %form.name
     )
 )]
+#[debug_handler]
 pub async fn subscribe(
     Extension(db_pool): Extension<Pool<Postgres>>,
+    Extension(email_client): Extension<EmailClient>,
     Form(form): Form<FormData>,
 ) -> StatusCode {
     let new_subscriber = match form.try_into() {
         Ok(form) => form,
         Err(_) => return StatusCode::BAD_REQUEST,
     };
-    match insert_subscriber(&db_pool, &new_subscriber).await {
-        Ok(_) => StatusCode::OK,
-        Err(_) => StatusCode::INTERNAL_SERVER_ERROR,
+    if insert_subscriber(&db_pool, &new_subscriber).await.is_err() {
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    };
+    if email_client
+        .send_email(
+            new_subscriber.email,
+            "Welcome!",
+            "Welcome to our newsletter!",
+            "Welcome to our newsletter!",
+        )
+        .await
+        .is_err()
+    {
+        return StatusCode::INTERNAL_SERVER_ERROR;
     }
+    StatusCode::OK
 }
 
 impl TryFrom<FormData> for NewSubscriber {

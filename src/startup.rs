@@ -71,7 +71,6 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
 }
 
 pub type RunningServer = hyper::Server<AddrIncoming, IntoMakeService<Router>>;
-
 pub fn run(
     listener: TcpListener,
     db_pool: PgPool,
@@ -84,7 +83,7 @@ pub fn run(
                 .make_span_with(
                     DefaultMakeSpan::new()
                         .include_headers(true)
-                        .level(Level::INFO),
+                        .level(Level::ERROR),
                 )
                 .on_response(DefaultOnResponse::new().include_headers(true)),
         )
