@@ -15,7 +15,7 @@ name = "zero2prod"
 
 [dependencies]
 anyhow = "1.0.75"
-axum = "0.6.20"
+axum = { version = "0.6.20", features = ["macros"] }
 config = "0.13.3"
 fake = "2.8.0"
 hyper = "0.14.27"
