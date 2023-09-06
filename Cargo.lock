@@ -2578,6 +2578,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "c20c8dbed6283a09604c3e69b4b7eeb54e298b8a600d4d5ecb5ad39de609f1d0"
 
 [[package]]
+name = "tower-request-id"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3a4fbab3421649e92056980671a04d83aa76e3bd4e7b755a9d9ae24eb2015b25"
+dependencies = [
+ "http",
+ "tower-layer",
+ "tower-service",
+ "ulid",
+]
+
+[[package]]
 name = "tower-service"
 version = "0.3.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2681,6 +2693,15 @@ name = "ucd-trie"
 version = "0.1.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ed646292ffc8188ef8ea4d1e0e0150fb15a5c2e12ad9b8fc191ae7a8a7f3c4b9"
+
+[[package]]
+name = "ulid"
+version = "1.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "0f9d3475df4ff8a8f7804c0fc3394b44fdcfc4fb635717bf05fbb7c41c83a376"
+dependencies = [
+ "rand 0.8.5",
+]
 
 [[package]]
 name = "unicode-bidi"
@@ -3057,6 +3078,7 @@ dependencies = [
  "tokio",
  "tower",
  "tower-http",
+ "tower-request-id",
  "tracing",
  "tracing-bunyan-formatter",
  "tracing-log",
