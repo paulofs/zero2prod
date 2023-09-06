@@ -35,12 +35,19 @@ pub async fn subscribe(
     if insert_subscriber(&db_pool, &new_subscriber).await.is_err() {
         return StatusCode::INTERNAL_SERVER_ERROR;
     };
+    let confirmation_link = "https://my-api.com/subscriptions/confirm";
     if email_client
         .send_email(
             new_subscriber.email,
             "Welcome!",
-            "Welcome to our newsletter!",
-            "Welcome to our newsletter!",
+            &format!(
+                "Welcome to our newsletter!<br />\
+                Click <a href=\"{}\">here</a> to confirm your subscription.",
+                confirmation_link
+            ), &format!(
+                "Welcome to our newsletter!\nVisit {} to confirm your subscription.",
+                confirmation_link
+            ),
         )
         .await
         .is_err()
