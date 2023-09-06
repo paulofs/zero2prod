@@ -11,6 +11,7 @@ use tracing_log::log::LevelFilter;
 use crate::domain::SubscriberEmail;
 
 #[derive(serde::Deserialize)]
+#[derive(Clone)]
 pub struct Settings {
     pub database: DatabaseSettings,
     pub application: ApplicationSettings,
@@ -19,6 +20,7 @@ pub struct Settings {
 
 // Database Settings
 #[derive(serde::Deserialize)]
+#[derive(Clone)]
 pub struct DatabaseSettings {
     pub username: String,
     pub password: Secret<String>,
@@ -53,6 +55,7 @@ impl DatabaseSettings {
 
 // Application Settings
 #[derive(serde::Deserialize)]
+#[derive(Clone)]
 pub struct ApplicationSettings {
     #[serde(deserialize_with = "deserialize_number_from_string")]
     pub port: u16,
@@ -90,6 +93,7 @@ impl TryFrom<String> for Environment {
 
 // Email Client settings
 #[derive(serde::Deserialize)]
+#[derive(Clone)]
 pub struct EmailClientSettings {
     pub base_url: String,
     pub sender_email: String,

@@ -1,8 +1,7 @@
 //! src/main.rs
 use zero2prod::{
     configuration::get_configuration,
-    startup::build,
-    telemetry::{get_subscriber, init_subscriber},
+    telemetry::{get_subscriber, init_subscriber}, startup::Application,
 };
 
 #[tokio::main]
@@ -12,8 +11,9 @@ async fn main() -> anyhow::Result<()> {
     init_subscriber(subscriber);
 
     let configuration = get_configuration().expect("Failed to read configuration");
-    let server = build(configuration).await?;
-    server.await?;
+
+    let application = Application::build(configuration).await?;
+    application.run_until_stopped().await?;
     // TODO: Transform this erron into sdt::io
     Ok(())
 }
