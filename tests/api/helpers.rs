@@ -5,7 +5,8 @@ use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use zero2prod::{
     configuration::{get_configuration, DatabaseSettings},
-    telemetry::{get_subscriber, init_subscriber}, startup::{ get_connection_pool, Application},
+    startup::{get_connection_pool, Application},
+    telemetry::{get_subscriber, init_subscriber},
 };
 
 pub struct TestApp {
@@ -51,7 +52,7 @@ async fn configure_database(config: &DatabaseSettings) -> PgPool {
 
 pub async fn spawn_app() -> TestApp {
     Lazy::force(&TRACING);
-    
+
     // Randomise configuration to ensure test isolation
     let configuration = {
         let mut c = get_configuration().expect("Failed to read configuration.");
@@ -61,17 +62,17 @@ pub async fn spawn_app() -> TestApp {
         c.application.port = 0;
         c
     };
-    
+
     // Create and migrate the database
     configure_database(&configuration.database).await;
 
     let application = Application::build(configuration.clone())
         .await
         .expect("Failed to build application.");
-    
+
     let address = format!("http://127.0.0.1:{}", application.port());
     let _ = tokio::spawn(application.run_until_stopped());
-    
+
     TestApp {
         address,
         db_pool: get_connection_pool(&configuration.database),

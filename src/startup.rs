@@ -52,7 +52,7 @@ impl Application {
         let port = listener.local_addr().unwrap().port();
         let server = run(listener, connection_pool, email_client)?;
 
-        Ok(Self {port, server})
+        Ok(Self { port, server })
     }
 
     pub fn port(&self) -> u16 {
@@ -62,8 +62,6 @@ impl Application {
     pub async fn run_until_stopped(self) -> anyhow::Result<(), hyper::Error> {
         self.server.await
     }
-
-
 }
 
 pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
