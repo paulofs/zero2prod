@@ -41,11 +41,8 @@ pub async fn get_subscriber_id_from_token(
         subscription_token
     )
     .fetch_optional(db_pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-    })?;
+    .await?;
+
     Ok(result.map(|r| r.subscriber_id))
 }
 #[tracing::instrument(name = "Mark subscriber as confirmed", skip(subscriber_id, db_pool))]
@@ -55,10 +52,7 @@ pub async fn confirm_subscriber(db_pool: &PgPool, subscriber_id: Uuid) -> Result
         subscriber_id
     )
     .execute(db_pool)
-    .await
-    .map_err(|e| {
-        tracing::error!("Failed to execute query: {:?}", e);
-        e
-    })?;
+    .await?;
+
     Ok(())
 }
