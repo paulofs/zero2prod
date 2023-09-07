@@ -97,7 +97,7 @@ async fn newsletters_are_delivered_to_confirmed_subscribers() {
 }
 
 #[tokio::test]
-async fn newsletters_returns_400_for_invalid_data() {
+async fn newsletters_returns_422_for_invalid_data() {
     // Arrange
     let app = spawn_app().await;
     let test_cases = vec![
@@ -121,7 +121,7 @@ async fn newsletters_returns_400_for_invalid_data() {
 
         // Assert
         assert_eq!(
-            400,
+            422,
             response.status().as_u16(),
             "The API did not fail with 400 Bad Request when the payload was {}.",
             error_message
