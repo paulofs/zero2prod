@@ -28,6 +28,9 @@ pub struct Application {
     server: hyper::Server<AddrIncoming, IntoMakeService<Router>>,
 }
 
+#[derive(Clone)]
+pub struct ApplicationBaseUrl(pub String);
+
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
         let connection_pool = get_connection_pool(&configuration.database);
@@ -50,7 +53,12 @@ impl Application {
         );
         let listener = std::net::TcpListener::bind(address)?;
         let port = listener.local_addr().unwrap().port();
-        let server = run(listener, connection_pool, email_client)?;
+        let server = run(
+            listener,
+            connection_pool,
+            email_client,
+            configuration.application.base_url,
+        )?;
 
         Ok(Self { port, server })
     }
@@ -75,6 +83,7 @@ pub fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
+    base_url: String,
 ) -> anyhow::Result<RunningServer> {
     let middleware = ServiceBuilder::new()
         .set_x_request_id(MakeRequestUuid)
@@ -95,6 +104,7 @@ pub fn run(
         .route("/subscriptions/confirm", get(confirm))
         .layer(Extension(db_pool))
         .layer(Extension(email_client))
+        .layer(Extension(ApplicationBaseUrl(base_url)))
         .layer(middleware);
 
     let server = axum::Server::from_tcp(listener)?.serve(app.into_make_service());

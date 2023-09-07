@@ -9,13 +9,14 @@ use sqlx::{
 use crate::{
     domain::{NewSubscriber, SubscriberEmail, SubscriberName},
     email_client::EmailClient,
+    startup::ApplicationBaseUrl,
 };
 
 /// Creates a span at the beginning of the function invocation and automatically ataches all
 /// arguments passed to the function to the context of the span
 #[tracing::instrument(
     name = "Adding a new subscriber",
-    skip(form, db_pool, email_client),
+    skip(form, db_pool, email_client, base_url),
     fields(
         //request_id = %Uuid::new_v4(),
         subscriber_email = %form.email,
@@ -26,6 +27,7 @@ use crate::{
 pub async fn subscribe(
     Extension(db_pool): Extension<Pool<Postgres>>,
     Extension(email_client): Extension<EmailClient>,
+    Extension(base_url): Extension<ApplicationBaseUrl>,
     Form(form): Form<FormData>,
 ) -> StatusCode {
     let new_subscriber = match form.try_into() {
@@ -35,7 +37,7 @@ pub async fn subscribe(
     if insert_subscriber(&db_pool, &new_subscriber).await.is_err() {
         return StatusCode::INTERNAL_SERVER_ERROR;
     };
-    if send_confirmation_email(&email_client, new_subscriber)
+    if send_confirmation_email(&email_client, new_subscriber, &base_url.0)
         .await
         .is_err()
     {
@@ -53,12 +55,16 @@ impl TryFrom<FormData> for NewSubscriber {
         Ok(Self { email, name })
     }
 }
-#[tracing::instrument(skip(email_client, new_subscriber))]
+#[tracing::instrument(skip(email_client, new_subscriber, base_url))]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
+    base_url: &str,
 ) -> Result<(), reqwest::Error> {
-    let confirmation_link = "https://my-api.com/subscriptions/confirm";
+    let confirmation_link = format!(
+        "{}/subscriptions/confirm?subscription_token=mytoken",
+        base_url
+    );
     let plain_body = format!(
         "Welcome to our newsletter!<br />\
                 Click <a href=\"{}\">here</a> to confirm your subscription.",
