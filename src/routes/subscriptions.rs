@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use sqlx::{Pool, Postgres, Transaction};
+use sqlx::{PgConnection, PgPool, Postgres, Transaction};
 use uuid::Uuid;
 
 use crate::{
@@ -30,7 +30,7 @@ use crate::{
 )]
 #[debug_handler]
 pub async fn subscribe(
-    Extension(db_pool): Extension<Pool<Postgres>>,
+    Extension(db_pool): Extension<PgPool>,
     Extension(email_client): Extension<EmailClient>,
     Extension(base_url): Extension<ApplicationBaseUrl>,
     Form(form): Form<FormData>,
@@ -44,8 +44,8 @@ pub async fn subscribe(
         Ok(transaction) => transaction,
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
     };
-
-    let subscriber_id = match insert_subscriber(&mut transaction, &new_subscriber).await {
+    // See https://github.com/launchbadge/sqlx/blob/main/CHANGELOG.md#070---2023-06-30
+    let subscriber_id = match insert_subscriber(&mut *transaction, &new_subscriber).await {
         Ok(subscriber_id) => subscriber_id,
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
     };
@@ -57,11 +57,11 @@ pub async fn subscribe(
     {
         return StatusCode::INTERNAL_SERVER_ERROR;
     }
-    /*
-        if transaction.commit().await.is_err() {
-            return StatusCode::INTERNAL_SERVER_ERROR;
-        }
-    */
+
+    if transaction.commit().await.is_err() {
+        return StatusCode::INTERNAL_SERVER_ERROR;
+    }
+
     if send_confirmation_email(
         &email_client,
         new_subscriber,
@@ -115,7 +115,7 @@ pub async fn send_confirmation_email(
     skip(new_subscriber, transaction)
 )]
 pub async fn insert_subscriber(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     new_subscriber: &NewSubscriber,
 ) -> Result<Uuid, sqlx::Error> {
     let subscriber_id = Uuid::new_v4();
@@ -159,7 +159,7 @@ fn generate_subscription_token() -> String {
     skip(subscription_token, transaction)
 )]
 pub async fn store_token(
-    transaction: &mut Transaction<'_, Postgres>,
+    transaction: &mut PgConnection,
     subscriber_id: Uuid,
     subscription_token: &str,
 ) -> Result<(), sqlx::Error> {
@@ -178,3 +178,4 @@ pub async fn store_token(
 
     Ok(())
 }
+
