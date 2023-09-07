@@ -7,7 +7,7 @@ use axum::{
 };
 use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
-use sqlx::{PgConnection, PgPool, Postgres, Transaction};
+use sqlx::{PgConnection, PgPool};
 use uuid::Uuid;
 
 use crate::{
@@ -44,8 +44,10 @@ pub async fn subscribe(
         Ok(transaction) => transaction,
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
     };
+
     // See https://github.com/launchbadge/sqlx/blob/main/CHANGELOG.md#070---2023-06-30
-    let subscriber_id = match insert_subscriber(&mut *transaction, &new_subscriber).await {
+    // PS: Using auto deref
+    let subscriber_id = match insert_subscriber(&mut transaction, &new_subscriber).await {
         Ok(subscriber_id) => subscriber_id,
         Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
     };
@@ -178,4 +180,3 @@ pub async fn store_token(
 
     Ok(())
 }
-
