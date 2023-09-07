@@ -52,7 +52,6 @@ async fn subscribe_persists_the_new_subscriber() {
     assert_eq!(saved.status, "pending_confirmation");
 }
 
-
 #[tokio::test]
 async fn subscribe_returns_a_400_when_data_is_missing() {
     // Arrange
@@ -148,7 +147,7 @@ async fn subscribe_sends_a_confirmation_email_with_a_link() {
             .links(s)
             .filter(|l| *l.kind() == linkify::LinkKind::Url)
             .collect();
-            assert_eq!(links.len(), 1);
+        assert_eq!(links.len(), 1);
         links[0].as_str().to_owned()
     };
 
