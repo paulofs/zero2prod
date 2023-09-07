@@ -1,6 +1,5 @@
 //! src/domain/subscriber_email.rs
 
-
 use validator::validate_email;
 
 #[derive(Debug, Clone)]

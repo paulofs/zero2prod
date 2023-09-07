@@ -6,7 +6,7 @@ use std::net::TcpListener;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
-    routes::{confirm, health_check, subscribe, publish_newsletter},
+    routes::{confirm, health_check, publish_newsletter, subscribe},
 };
 use axum::{
     routing::{get, post, IntoMakeService},
