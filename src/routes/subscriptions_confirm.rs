@@ -1,12 +1,12 @@
 use axum::{extract::Query, Extension};
 use hyper::StatusCode;
-use sqlx::{Pool, Postgres};
+use sqlx::PgPool;
 use uuid::Uuid;
 
 #[tracing::instrument(name = "Confirm a pending subscriber", skip(parameters, db_pool))]
 pub async fn confirm(
     parameters: Query<Parameters>,
-    Extension(db_pool): Extension<Pool<Postgres>>,
+    Extension(db_pool): Extension<PgPool>,
 ) -> StatusCode {
     let id = match get_subscriber_id_from_token(&db_pool, &parameters.subscription_token).await {
         Ok(id) => id,
@@ -33,7 +33,7 @@ pub struct Parameters {
     skip(subscription_token, db_pool)
 )]
 pub async fn get_subscriber_id_from_token(
-    db_pool: &Pool<Postgres>,
+    db_pool: &PgPool,
     subscription_token: &str,
 ) -> Result<Option<Uuid>, sqlx::Error> {
     let result = sqlx::query!(
@@ -49,10 +49,7 @@ pub async fn get_subscriber_id_from_token(
     Ok(result.map(|r| r.subscriber_id))
 }
 #[tracing::instrument(name = "Mark subscriber as confirmed", skip(subscriber_id, db_pool))]
-pub async fn confirm_subscriber(
-    db_pool: &Pool<Postgres>,
-    subscriber_id: Uuid,
-) -> Result<(), sqlx::Error> {
+pub async fn confirm_subscriber(db_pool: &PgPool, subscriber_id: Uuid) -> Result<(), sqlx::Error> {
     sqlx::query!(
         r#"UPDATE subscriptions SET status = 'confirmed' WHERE id = $1"#,
         subscriber_id
