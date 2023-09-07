@@ -9,7 +9,7 @@ Following the book [Zero To Production In Rust](https://www.zero2prod.com/index.
 - [x] Chapter 6 - Reject Invalid Subscribers 1
 - [x] Chapter 7 - Reject Invalid Subscribers 2
 - [x] Chapter 8 - Error Handling
-- [ ] Chapter 9 - Naive Newsletter Delivery
+- [x] Chapter 9 - Naive Newsletter Delivery
 - [ ] Chapter 10 - Securing Our API
 - [ ] Chapter 11 - Fault-tolerant Workflows
 
