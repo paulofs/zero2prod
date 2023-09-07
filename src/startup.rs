@@ -21,7 +21,6 @@ use tower_http::{
     ServiceBuilderExt,
 };
 use tracing::Level;
-// WARN: That's ugly
 
 pub struct Application {
     port: u16,

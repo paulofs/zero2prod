@@ -1,9 +1,9 @@
 //! src/routes/subscriptions.rs
-// See: https://github.com/tokio-rs/axum/blob/main/examples/sqlx-postgres/src/main.rs
 use axum::{
     debug_handler,
     extract::{Extension, Form},
     http::StatusCode,
+    response::{IntoResponse, Response},
 };
 use chrono::Utc;
 use rand::{distributions::Alphanumeric, thread_rng, Rng};
@@ -15,10 +15,43 @@ use crate::{
     email_client::EmailClient,
     startup::ApplicationBaseUrl,
 };
+use anyhow::Context;
+pub fn error_chain_fmt(
+    e: &impl std::error::Error,
+    f: &mut std::fmt::Formatter<'_>,
+) -> std::fmt::Result {
+    writeln!(f, "{}\n", e)?;
+    let mut current = e.source();
+    while let Some(cause) = current {
+        writeln!(f, "Caused by: \n\t{}", cause)?;
+        current = cause.source();
+    }
+    Ok(())
+}
+#[derive(thiserror::Error)]
+pub enum SubscribeError {
+    #[error("{0}")]
+    ValidationError(String),
+    #[error(transparent)]
+    UnexpectedError(#[from] anyhow::Error),
+}
 
+impl IntoResponse for SubscribeError {
+    fn into_response(self) -> Response {
+        match self {
+            SubscribeError::ValidationError(_) => StatusCode::BAD_REQUEST.into_response(),
+            SubscribeError::UnexpectedError(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+        }
+    }
+}
+
+impl std::fmt::Debug for SubscribeError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        error_chain_fmt(self, f)
+    }
+}
 /// Creates a span at the beginning of the function invocation and automatically ataches all
 /// arguments passed to the function to the context of the span
-
 #[tracing::instrument(
     name = "Adding a new subscriber",
     skip(form, db_pool, email_client, base_url),
@@ -34,48 +67,40 @@ pub async fn subscribe(
     Extension(email_client): Extension<EmailClient>,
     Extension(base_url): Extension<ApplicationBaseUrl>,
     Form(form): Form<FormData>,
-) -> StatusCode {
-    let new_subscriber = match form.try_into() {
-        Ok(form) => form,
-        Err(_) => return StatusCode::BAD_REQUEST,
-    };
+) -> Result<StatusCode, SubscribeError> {
+    let new_subscriber = form.try_into().map_err(SubscribeError::ValidationError)?;
 
-    let mut transaction = match db_pool.begin().await {
-        Ok(transaction) => transaction,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
-    };
+    let mut transaction = db_pool
+        .begin()
+        .await
+        .context("Failed to acquire a Postgres connection from the pool")?;
 
     // See https://github.com/launchbadge/sqlx/blob/main/CHANGELOG.md#070---2023-06-30
     // PS: Using auto deref
-    let subscriber_id = match insert_subscriber(&mut transaction, &new_subscriber).await {
-        Ok(subscriber_id) => subscriber_id,
-        Err(_) => return StatusCode::INTERNAL_SERVER_ERROR,
-    };
+    let subscriber_id = insert_subscriber(&mut transaction, &new_subscriber)
+        .await
+        .context("Failed to insert new subscriber in the database.")?;
 
     let subscription_token = generate_subscription_token();
-    if store_token(&mut transaction, subscriber_id, &subscription_token)
+    store_token(&mut transaction, subscriber_id, &subscription_token)
         .await
-        .is_err()
-    {
-        return StatusCode::INTERNAL_SERVER_ERROR;
-    }
+        .context("Failed to store the confirmation token for a new subscriber.")?;
 
-    if transaction.commit().await.is_err() {
-        return StatusCode::INTERNAL_SERVER_ERROR;
-    }
+    transaction
+        .commit()
+        .await
+        .context("Failed to commit SQL transaction to store a new subscriber.")?;
 
-    if send_confirmation_email(
+    send_confirmation_email(
         &email_client,
         new_subscriber,
         &base_url.0,
         &subscription_token,
     )
     .await
-    .is_err()
-    {
-        return StatusCode::INTERNAL_SERVER_ERROR;
-    }
-    StatusCode::OK
+    .context("Failed to send a confirmation email.")?;
+
+    Ok(StatusCode::OK)
 }
 
 impl TryFrom<FormData> for NewSubscriber {
