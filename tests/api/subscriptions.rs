@@ -1,5 +1,4 @@
 //! tests/api/subscriptions.rs
-use serde_json::from_slice;
 use wiremock::{
     matchers::{method, path},
     Mock, ResponseTemplate,
