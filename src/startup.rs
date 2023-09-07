@@ -6,7 +6,7 @@ use std::net::TcpListener;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
-    routes::{health_check, subscribe},
+    routes::{health_check, subscribe, confirm},
 };
 use axum::{
     routing::{get, post, IntoMakeService},
@@ -92,6 +92,7 @@ pub fn run(
     let app = Router::new()
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
+        .route("/subscriptions/confirm", get(confirm))
         .layer(Extension(db_pool))
         .layer(Extension(email_client))
         .layer(middleware);

@@ -53,6 +53,7 @@ impl TryFrom<FormData> for NewSubscriber {
         Ok(Self { email, name })
     }
 }
+#[tracing::instrument(skip(email_client, new_subscriber))]
 pub async fn send_confirmation_email(
     email_client: &EmailClient,
     new_subscriber: NewSubscriber,
