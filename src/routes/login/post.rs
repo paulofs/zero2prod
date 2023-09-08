@@ -1,13 +1,10 @@
 use axum::{response::IntoResponse, Form};
 use secrecy::Secret;
 
-
 pub async fn login(form: Form<FormData>) -> impl IntoResponse {
     (
         axum::http::StatusCode::SEE_OTHER,
-        [
-            (axum::http::header::LOCATION, "/"),
-        ]
+        [(axum::http::header::LOCATION, "/")],
     )
 }
 
