@@ -1,5 +1,5 @@
 use anyhow::Context;
-use argon2::{Argon2, Algorithm, Version, Params, PasswordHasher};
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     debug_handler,
     http::{HeaderMap, HeaderValue},
@@ -175,16 +175,9 @@ async fn validate_credentials(
     credentials: Credentials,
     db_pool: &PgPool,
 ) -> Result<uuid::Uuid, PublishError> {
-    let hasher = Argon2::new(
-        Algorithm::Argon2id,
-        Version::V0x13,
-        Params::new(16000, 2, 1, None)
-            .context("Failed to build Argon2 parameters")
-            .map_err(PublishError::UnexpectedError)?,
-        );
     let row: Option<_> = sqlx::query!(
         r#"
-        SELECT user_id, password_hash, salt
+        SELECT user_id, password_hash
         FROM users
         WHERE username = $1
         "#,
@@ -195,24 +188,24 @@ async fn validate_credentials(
     .context("Failed to perform a query to retrieve stored credentials.")
     .map_err(PublishError::UnexpectedError)?;
 
-    let (expected_password_hash, user_id, salt) = match row {
-        Some(row) => (row.password_hash, row.user_id, row.salt),
+    let (expected_password_hash, user_id) = match row {
+        Some(row) => (row.password_hash, row.user_id),
         None => {
             return Err(PublishError::AuthError(anyhow::anyhow!("Unknown username")));
         }
     };
 
+    let expected_password_hash = PasswordHash::new(&expected_password_hash)
+        .context("Failed to parse hash in PHC string format.")
+        .map_err(PublishError::UnexpectedError)?;
 
-    let password_hash = hasher.hash_password(credentials.password.expose_secret().as_bytes(), &salt).context("Failed to hash password").map_err(PublishError::UnexpectedError)?;
-    // Lowercase hexadecimal encoding.
-    let password_hash = format!("{:x}", password_hash);
+    Argon2::default()
+        .verify_password(
+            credentials.password.expose_secret().as_bytes(),
+            &expected_password_hash,
+        )
+        .context("Invalid password")
+        .map_err(PublishError::AuthError)?;
 
-    if password_hash != expected_password_hash {
-        Err(PublishError::AuthError(anyhow::anyhow!(
-                    "Invalid password.")))
-    } else {
-        Ok(user_id)
-    }
+    Ok(user_id)
 }
-
-
