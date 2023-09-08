@@ -7,7 +7,7 @@ use sqlx::PgPool;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
-    routes::error_chain_fmt,
+    routes::error_chain_fmt, startup::HmacSecret,
 };
 
 #[tracing::instrument(
@@ -17,7 +17,7 @@ use crate::{
 #[debug_handler]
 pub async fn login(
     Extension(db_pool): Extension<PgPool>,
-    Extension(secret): Extension<Secret<String>>,
+    Extension(secret): Extension<HmacSecret>,
     Form(form): Form<FormData>,
 ) -> Result<Response, Response> {
     let credentials = Credentials {
@@ -36,6 +36,7 @@ pub async fn login(
             )
                 .into_response())
         }
+        // IDF how to deal with that e yet
         Err(e) => {
             let e = match e {
                 AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
@@ -44,7 +45,7 @@ pub async fn login(
             let query_string = format!("error={}", urlencoding::Encoded::new(e.to_string()));
             let hmac_tag = {
                 let mut mac =
-                    hmac::Hmac::<sha2::Sha256>::new_from_slice(secret.expose_secret().as_bytes())
+                    hmac::Hmac::<sha2::Sha256>::new_from_slice(secret.0.expose_secret().as_bytes())
                         .unwrap();
                 mac.update(query_string.as_bytes());
                 mac.finalize().into_bytes()
@@ -82,3 +83,4 @@ impl std::fmt::Debug for LoginError {
         error_chain_fmt(self, f)
     }
 }
+

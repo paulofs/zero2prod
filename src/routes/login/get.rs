@@ -1,9 +1,28 @@
-use axum::{extract::Query, response::IntoResponse};
+use axum::{debug_handler, extract::Query, response::IntoResponse, Extension};
+use hmac::{Hmac, Mac};
+use secrecy::ExposeSecret;
 
-pub async fn login_form(query: Query<QueryParams>) -> impl IntoResponse {
-    let error_html = match query.0.error {
+use crate::startup::HmacSecret;
+#[debug_handler]
+pub async fn login_form(
+    Extension(secret): Extension<HmacSecret>,
+    query: Option<Query<QueryParams>>,
+) -> impl IntoResponse {
+    let error_html = match query {
         None => "".into(),
-        Some(error_message) => format!("<p><i>{}</i></p>", htmlescape::encode_minimal(&error_message)),
+        Some(query) => match query.0.verify(&secret) {
+            Ok(error) => {
+                format!("<p><i>{}</i></p>", htmlescape::encode_minimal(&error))
+            }
+            Err(e) => {
+                tracing::warn!(
+                error.message = %e,
+                error.cause_chain = ?e,
+                "Failed to verify query parameters using the HMAC tag"
+                );
+                "".into()
+            }
+        },
     };
     (
         axum::http::StatusCode::OK,
@@ -41,7 +60,22 @@ pub async fn login_form(query: Query<QueryParams>) -> impl IntoResponse {
     )
 }
 
-#[derive(serde::Deserialize)]
+#[derive(serde::Deserialize, Clone)]
 pub struct QueryParams {
-    error: Option<String>,
+    error: String,
+    tag: String,
+}
+
+impl QueryParams {
+    fn verify(self, secret: &HmacSecret) -> Result<String, anyhow::Error> {
+        let tag = hex::decode(self.tag)?;
+        let query_string = format!("error={}", urlencoding::Encoded::new(&self.error));
+
+        let mut mac =
+            Hmac::<sha2::Sha256>::new_from_slice(secret.0.expose_secret().as_bytes()).unwrap();
+        mac.update(query_string.as_bytes());
+        mac.verify_slice(&tag)?;
+
+        Ok(self.error)
+    }
 }
