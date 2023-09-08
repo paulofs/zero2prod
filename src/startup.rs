@@ -6,7 +6,7 @@ use std::net::TcpListener;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
-    routes::{confirm, health_check, home, publish_newsletter, subscribe},
+    routes::{confirm, health_check, home, login_form, publish_newsletter, subscribe, login},
 };
 use axum::{
     routing::{get, post, IntoMakeService},
@@ -99,6 +99,8 @@ pub fn run(
 
     let app = Router::new()
         .route("/", get(home))
+        .route("/login", get(login_form))
+        .route("/login", post(login))
         .route("/health_check", get(health_check))
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
