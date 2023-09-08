@@ -3,7 +3,7 @@ use secrecy::Secret;
 use sqlx::PgPool;
 
 use crate::{
-    authentication::{validate_credentials, Credentials},
+    authentication::{validate_credentials, AuthError, Credentials},
     routes::error_chain_fmt,
 };
 
@@ -14,7 +14,7 @@ use crate::{
 pub async fn login(
     Extension(db_pool): Extension<PgPool>,
     Form(form): Form<FormData>,
-) -> impl IntoResponse {
+) -> Result<impl IntoResponse, LoginError> {
     let credentials = Credentials {
         username: form.username,
         password: form.password,
@@ -22,16 +22,20 @@ pub async fn login(
 
     tracing::Span::current().record("username", &tracing::field::display(&credentials.username));
 
-    match validate_credentials(credentials, &db_pool).await {
-        Ok(user_id) => {
-            tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
-            (
-                axum::http::StatusCode::SEE_OTHER,
-                [(axum::http::header::LOCATION, "/")],
-            )
-        }
-        Err(_) => todo!(),
-    }
+    let user_id = validate_credentials(credentials, &db_pool)
+        .await
+        .map_err(|e| match e {
+            AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
+            AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
+        })?;
+
+    tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+
+    Ok((
+        axum::http::StatusCode::SEE_OTHER,
+        [(axum::http::header::LOCATION, "/")],
+    )
+        .into_response())
 }
 
 #[derive(serde::Deserialize)]
@@ -56,11 +60,20 @@ impl std::fmt::Debug for LoginError {
 
 impl IntoResponse for LoginError {
     fn into_response(self) -> axum::response::Response {
-        match self {
-            LoginError::UnexpectedError(_) => {
-                axum::http::StatusCode::INTERNAL_SERVER_ERROR.into_response()
-            }
-            LoginError::AuthError(_) => axum::http::StatusCode::UNAUTHORIZED.into_response(),
-        }
+        let encoded_error = urlencoding::Encoded::new(self.to_string());
+        (
+            self.status_code(),
+            [(
+                axum::http::header::LOCATION,
+                format!("/login?error={}", encoded_error),
+            )],
+        )
+            .into_response()
+    }
+}
+
+impl LoginError {
+    fn status_code(&self) -> axum::http::StatusCode {
+        axum::http::StatusCode::SEE_OTHER
     }
 }
