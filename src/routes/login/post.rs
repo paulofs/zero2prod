@@ -12,8 +12,8 @@ use crate::{
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
     )]
 pub async fn login(
-    Form(form): Form<FormData>,
     Extension(db_pool): Extension<PgPool>,
+    Form(form): Form<FormData>,
 ) -> impl IntoResponse {
     let credentials = Credentials {
         username: form.username,
