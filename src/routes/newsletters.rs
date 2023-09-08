@@ -15,7 +15,9 @@ use hyper::{
 use secrecy::{ExposeSecret, Secret};
 use sqlx::PgPool;
 
-use crate::{domain::SubscriberEmail, email_client::EmailClient};
+use crate::{
+    domain::SubscriberEmail, email_client::EmailClient, telemetry::spawn_blocking_with_tracing,
+};
 
 use super::error_chain_fmt;
 
@@ -217,13 +219,14 @@ async fn validate_credentials(
     credentials: Credentials,
     db_pool: &PgPool,
 ) -> Result<uuid::Uuid, PublishError> {
-    let (user_id, expected_password_hash) = get_stored_credentials(&credentials.username, &db_pool)
+    let (user_id, expected_password_hash) = get_stored_credentials(&credentials.username, db_pool)
         .await
         .map_err(PublishError::UnexpectedError)?
         .ok_or_else(|| PublishError::AuthError(anyhow::anyhow!("Unknown username.")))?;
 
-    tokio::task::spawn_blocking(move || {
-        verify_password_hash(expected_password_hash, credentials.password)
+    let current_span = tracing::Span::current();
+    spawn_blocking_with_tracing(move || {
+        current_span.in_scope(|| verify_password_hash(expected_password_hash, credentials.password))
     })
     .await
     .context("Failed to spawn blocking task.")
