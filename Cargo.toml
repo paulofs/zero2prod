@@ -15,6 +15,7 @@ name = "zero2prod"
 
 [dependencies]
 anyhow = "1.0.75"
+argon2 = { version = "0.5.2", features = ["std"] }
 axum = { version = "0.6.20", features = ["macros", "query"] }
 base64 = "0.21.3"
 chrono = "0.4.30"
