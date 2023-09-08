@@ -3,25 +3,22 @@ use axum::{
     response::{IntoResponse, Response},
     Extension, Form,
 };
-use hmac::Mac;
 
-use secrecy::{ExposeSecret, Secret};
+use secrecy::Secret;
 use sqlx::PgPool;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
     routes::error_chain_fmt,
-    startup::HmacSecret,
 };
 
 #[tracing::instrument(
-    skip(form, db_pool, secret),
+    skip(form, db_pool),
     fields(username=tracing::field::Empty, user_id=tracing::field::Empty)
     )]
 #[debug_handler]
 pub async fn login(
     Extension(db_pool): Extension<PgPool>,
-    Extension(secret): Extension<HmacSecret>,
     Form(form): Form<FormData>,
 ) -> Result<Response, Response> {
     let credentials = Credentials {
@@ -42,28 +39,17 @@ pub async fn login(
         }
         // IDF how to deal with that e yet
         Err(e) => {
-            let e = match e {
+            let _e = match e {
                 AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
                 AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
-            };
-            let query_string = format!("error={}", urlencoding::Encoded::new(e.to_string()));
-            let hmac_tag = {
-                let mut mac =
-                    hmac::Hmac::<sha2::Sha256>::new_from_slice(secret.0.expose_secret().as_bytes())
-                        .unwrap();
-                mac.update(query_string.as_bytes());
-                mac.finalize().into_bytes()
             };
             // --- Response
             let response = (
                 axum::http::StatusCode::SEE_OTHER,
-                [(
-                    axum::http::header::LOCATION,
-                    format!("/login?{}&tag={:x}", query_string, hmac_tag),
-                )],
+                [(axum::http::header::LOCATION, "/login")],
             );
-            Err(response.into_response())
-            // ---
+            Err(response.into_response()) // Idk how to propagate that e yet
+                                          // ---
         }
     }
 }
