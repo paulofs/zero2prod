@@ -16,7 +16,8 @@ name = "zero2prod"
 [dependencies]
 anyhow = "1.0.75"
 argon2 = { version = "0.5.2", features = ["std"] }
-axum = { version = "0.6.20", features = ["macros", "query"] }
+axum = { version = "0.6.20", features = ["macros", "query", ] }
+axum-extra = { version = "0.7.7", features = ["cookie"] }
 base64 = "0.21.3"
 chrono = "0.4.30"
 config = "0.13.3"
@@ -28,7 +29,7 @@ hyper = "0.14.27"
 quickcheck = "1.0.3"
 quickcheck_macros = "1.0.0"
 rand = { version = "0.8.5", features = ["std_rng"] }
-reqwest = { version = "0.11.20", features = ["json", "rustls-tls"] }
+reqwest = { version = "0.11.20", features = ["json", "rustls-tls", "cookies"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde-aux = "4.2.0"

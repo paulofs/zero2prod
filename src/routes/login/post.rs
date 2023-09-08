@@ -39,14 +39,17 @@ pub async fn login(
         }
         // IDF how to deal with that e yet
         Err(e) => {
-            let _e = match e {
+            let e = match e {
                 AuthError::InvalidCredentials(_) => LoginError::AuthError(e.into()),
                 AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
             };
             // --- Response
             let response = (
                 axum::http::StatusCode::SEE_OTHER,
-                [(axum::http::header::LOCATION, "/login")],
+                [
+                    (axum::http::header::LOCATION, "/login"),
+                    (axum::http::header::SET_COOKIE, &format!("_flash={}", e)),
+                ],
             );
             Err(response.into_response()) // Idk how to propagate that e yet
                                           // ---
