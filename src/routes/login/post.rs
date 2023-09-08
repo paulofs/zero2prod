@@ -1,5 +1,8 @@
-
-use axum::{debug_handler, response::{IntoResponse, Response}, Extension, Form};
+use axum::{
+    debug_handler,
+    response::{IntoResponse, Response},
+    Extension, Form,
+};
 use hmac::Mac;
 
 use secrecy::{ExposeSecret, Secret};
@@ -7,7 +10,8 @@ use sqlx::PgPool;
 
 use crate::{
     authentication::{validate_credentials, AuthError, Credentials},
-    routes::error_chain_fmt, startup::HmacSecret,
+    routes::error_chain_fmt,
+    startup::HmacSecret,
 };
 
 #[tracing::instrument(
@@ -83,4 +87,3 @@ impl std::fmt::Debug for LoginError {
         error_chain_fmt(self, f)
     }
 }
-
