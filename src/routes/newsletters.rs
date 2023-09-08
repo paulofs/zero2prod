@@ -242,12 +242,10 @@ async fn validate_credentials(
     .await
     .context("Failed to spawn blocking task.")
     .map_err(PublishError::UnexpectedError)??;
-    
+
     // This is only set to `Some` if we found credentials in the store
     // so, even if the default password ends up matching (somehow)
     // with the provided password,
     // we never authenticate a non-existing user.
-    user_id.ok_or_else(||
-        PublishError::AuthError(anyhow::anyhow!("Unknow username."))
-                       )
+    user_id.ok_or_else(|| PublishError::AuthError(anyhow::anyhow!("Unknow username.")))
 }
