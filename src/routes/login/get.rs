@@ -3,7 +3,7 @@ use axum::{extract::Query, response::IntoResponse};
 pub async fn login_form(query: Query<QueryParams>) -> impl IntoResponse {
     let error_html = match query.0.error {
         None => "".into(),
-        Some(error_message) => format!("<p><i>{error_message}</i></p>"),
+        Some(error_message) => format!("<p><i>{}</i></p>", htmlescape::encode_minimal(&error_message)),
     };
     (
         axum::http::StatusCode::OK,
