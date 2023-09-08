@@ -1,7 +1,7 @@
 //! tests/api/helpers.rs
 
+use argon2::{password_hash::SaltString, Argon2, PasswordHasher};
 use once_cell::sync::Lazy;
-use sha3::Digest;
 use sqlx::{Connection, Executor, PgConnection, PgPool};
 use uuid::Uuid;
 use wiremock::MockServer;
@@ -35,8 +35,13 @@ impl TestUser {
     }
 
     async fn store(&self, db_pool: &PgPool) {
-        let password_hash = sha3::Sha3_256::digest(&self.password.as_bytes());
-        let password_hash = format!("{:x}", password_hash);
+        let salt = SaltString::generate(&mut rand::thread_rng());
+        // We don't care about the exact Argon2 parameters here
+        // given that it's for testing purposes!
+        let password_hash = Argon2::default()
+            .hash_password(self.password.as_bytes(), &salt)
+            .unwrap()
+            .to_string();
         sqlx::query!(
             "INSERT INTO users (user_id, username, password_hash)
             VALUES ($1, $2, $3)",
@@ -120,7 +125,7 @@ pub async fn spawn_app() -> TestApp {
         port: application_port,
         db_pool: get_connection_pool(&configuration.database),
         email_server,
-        test_user: TestUser::generate()
+        test_user: TestUser::generate(),
     };
 
     test_app.test_user.store(&test_app.db_pool).await;
@@ -170,5 +175,4 @@ impl TestApp {
             .await
             .expect("Failed to execute request.")
     }
-
 }
