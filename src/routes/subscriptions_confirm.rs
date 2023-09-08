@@ -1,5 +1,5 @@
 use axum::{extract::Query, Extension};
-use hyper::StatusCode;
+use axum::http::StatusCode;
 use sqlx::PgPool;
 use uuid::Uuid;
 

@@ -21,6 +21,7 @@ base64 = "0.21.3"
 chrono = "0.4.30"
 config = "0.13.3"
 fake = "2.8.0"
+hmac = "0.12.1"
 htmlescape = "0.3.1"
 hyper = "0.14.27"
 quickcheck = "1.0.3"
@@ -30,6 +31,7 @@ reqwest = { version = "0.11.20", features = ["json", "rustls-tls"] }
 secrecy = { version = "0.8.0", features = ["serde"] }
 serde = { version = "1.0.188", features = ["derive"] }
 serde-aux = "4.2.0"
+sha2 = "0.10.7"
 sqlx = { version = "0.7.1", default-features = false, features = ["runtime-tokio-native-tls", "postgres", "macros", "uuid", "chrono", "migrate"] }
 thiserror = "1.0.48"
 tokio = { version = "1.32.0", features = ["macros", "rt-multi-thread"] }

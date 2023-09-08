@@ -1,15 +1,11 @@
 use anyhow::Context;
 use axum::{
     debug_handler,
-    http::{HeaderMap, HeaderValue},
+    http::{header, HeaderMap, HeaderValue, StatusCode},
     response::IntoResponse,
     Extension, Json,
 };
 use base64::Engine;
-use hyper::{
-    header::{self},
-    StatusCode,
-};
 
 use secrecy::Secret;
 use sqlx::PgPool;
