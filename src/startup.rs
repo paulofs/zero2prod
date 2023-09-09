@@ -6,7 +6,7 @@ use std::net::TcpListener;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
-    routes::{confirm, health_check, home, login, login_form, publish_newsletter, subscribe},
+    routes::{confirm, health_check, home, login, login_form, publish_newsletter, subscribe, admin_dashboard},
 };
 use async_redis_session::RedisSessionStore;
 use axum::{
@@ -129,6 +129,7 @@ pub async fn run(
         .route("/subscriptions", post(subscribe))
         .route("/subscriptions/confirm", get(confirm))
         .route("/newsletters", post(publish_newsletter))
+        .route("/admin/dashboard", get(admin_dashboard))
         .layer(Extension(db_pool))
         .layer(Extension(email_client))
         .layer(Extension(ApplicationBaseUrl(base_url)))
