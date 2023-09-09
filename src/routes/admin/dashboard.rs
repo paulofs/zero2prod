@@ -10,7 +10,10 @@ pub async fn admin_dashboard(Extension(db_pool): Extension<PgPool>, session: Rea
             .await
             .expect("Failed to get the username")
     } else {
-        todo!()
+        return (
+            axum::http::StatusCode::SEE_OTHER,
+            [(axum::http::header::LOCATION, "/login"),],
+        ).into_response()
     };
     (
         axum::http::StatusCode::OK,
