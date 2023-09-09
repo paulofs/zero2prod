@@ -7,8 +7,8 @@ use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
     routes::{
-        admin_dashboard, confirm, health_check, home, login, login_form, publish_newsletter,
-        subscribe, change_password, change_password_form,
+        admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
+        login_form, publish_newsletter, subscribe,
     },
 };
 use axum::{

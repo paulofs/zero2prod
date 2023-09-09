@@ -1,6 +1,13 @@
 use axum::response::{Html, IntoResponse, Response};
+use axum_sessions::extractors::ReadableSession;
 
-pub async fn change_password_form() -> Response {
+pub async fn change_password_form(session: ReadableSession) -> Response {
+    if session.get::<uuid::Uuid>("user_id").is_none() {
+        return (
+                    axum::http::StatusCode::SEE_OTHER,
+                    [(axum::http::header::LOCATION, "/login")]
+               ).into_response();
+    }
     (
         axum::http::StatusCode::OK,
         [(axum::http::header::CONTENT_TYPE, "text/html; charset=UTF-8")],

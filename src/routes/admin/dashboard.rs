@@ -1,10 +1,17 @@
 use anyhow::Context;
-use axum::{response::{Html, IntoResponse, Response}, debug_handler, Extension};
+use axum::{
+    debug_handler,
+    response::{Html, IntoResponse, Response},
+    Extension,
+};
 use axum_sessions::extractors::ReadableSession;
 use sqlx::PgPool;
 use uuid::Uuid;
 #[debug_handler]
-pub async fn admin_dashboard(Extension(db_pool): Extension<PgPool>, session: ReadableSession) -> Response {
+pub async fn admin_dashboard(
+    Extension(db_pool): Extension<PgPool>,
+    session: ReadableSession,
+) -> Response {
     let username = if let Some(user_id) = session.get::<Uuid>("user_id") {
         get_username(user_id, &db_pool)
             .await
@@ -12,8 +19,9 @@ pub async fn admin_dashboard(Extension(db_pool): Extension<PgPool>, session: Rea
     } else {
         return (
             axum::http::StatusCode::SEE_OTHER,
-            [(axum::http::header::LOCATION, "/login"),],
-        ).into_response()
+            [(axum::http::header::LOCATION, "/login")],
+        )
+            .into_response();
     };
     (
         axum::http::StatusCode::OK,
@@ -26,6 +34,10 @@ pub async fn admin_dashboard(Extension(db_pool): Extension<PgPool>, session: Rea
 </head>
 <body>
     <p>Wellcome {username}!</p>
+    <p>Available actions:</p>
+    <ol>
+        <li><a href="/admin/password">Change password</a></li>
+    </ol>
 </body>
 </html>"#
         )),
