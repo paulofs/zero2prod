@@ -33,7 +33,7 @@ pub async fn login(
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
             Ok((
                 axum::http::StatusCode::SEE_OTHER,
-                [(axum::http::header::LOCATION, "/")],
+                [(axum::http::header::LOCATION, "/admin/dashboard")],
             )
                 .into_response())
         }
