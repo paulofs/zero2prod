@@ -4,6 +4,7 @@ use axum::{
     Extension, Form,
 };
 
+use axum_sessions::extractors::WritableSession;
 use secrecy::Secret;
 use sqlx::PgPool;
 
@@ -19,6 +20,7 @@ use crate::{
 #[debug_handler]
 pub async fn login(
     Extension(db_pool): Extension<PgPool>,
+    mut session: WritableSession,
     Form(form): Form<FormData>,
 ) -> Result<Response, Response> {
     let credentials = Credentials {
@@ -31,6 +33,10 @@ pub async fn login(
     match validate_credentials(credentials, &db_pool).await {
         Ok(user_id) => {
             tracing::Span::current().record("user_id", &tracing::field::display(&user_id));
+            session
+                .insert("user_id", user_id)
+                .map_err(|e| login_redirect(LoginError::UnexpectedError(e.into())))
+                .into_response();
             Ok((
                 axum::http::StatusCode::SEE_OTHER,
                 [(axum::http::header::LOCATION, "/admin/dashboard")],
@@ -44,15 +50,8 @@ pub async fn login(
                 AuthError::UnexpectedError(_) => LoginError::UnexpectedError(e.into()),
             };
             // --- Response
-            let response = (
-                axum::http::StatusCode::SEE_OTHER,
-                [
-                    (axum::http::header::LOCATION, "/login"),
-                    (axum::http::header::SET_COOKIE, &format!("_flash={}", e)),
-                ],
-            );
-            Err(response.into_response()) // Idk how to propagate that e yet
-                                          // ---
+            Err(login_redirect(e).into_response()) // Idk how to propagate that e yet
+                                                   // ---
         }
     }
 }
@@ -75,4 +74,15 @@ impl std::fmt::Debug for LoginError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         error_chain_fmt(self, f)
     }
+}
+
+fn login_redirect(e: LoginError) -> Response {
+    (
+        axum::http::StatusCode::SEE_OTHER,
+        [
+            (axum::http::header::LOCATION, "/login"),
+            (axum::http::header::SET_COOKIE, &format!("_flash={}", e)),
+        ],
+    )
+        .into_response()
 }

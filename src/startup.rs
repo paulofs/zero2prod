@@ -6,16 +6,18 @@ use std::net::TcpListener;
 use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
-    routes::{confirm, health_check, home, login, login_form, publish_newsletter, subscribe, admin_dashboard},
+    routes::{
+        admin_dashboard, confirm, health_check, home, login, login_form, publish_newsletter,
+        subscribe,
+    },
 };
-use async_redis_session::RedisSessionStore;
 use axum::{
     routing::{get, post, IntoMakeService},
     Extension, Router,
 };
 use axum_extra::extract::cookie::Key;
 use hyper::server::conn::AddrIncoming;
-use secrecy::{Secret, ExposeSecret};
+use secrecy::Secret;
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower::ServiceBuilder;
 use tower_http::{
@@ -95,14 +97,12 @@ pub async fn run(
     email_client: EmailClient,
     base_url: String,
     hmac_secret: Secret<String>,
-    redis_uri: Secret<String>,
+    _redis_uri: Secret<String>,
 ) -> anyhow::Result<RunningServer> {
     // let redis_store = RedisSessionStore::new(redis_uri.expose_secret().to_string())?;
     let store = axum_sessions::async_session::MemoryStore::new();
     let secret = b"123456789012345678901234567890ygufcvretrdf546sdcgtedecfvyuuit7xt";
     let session_layer = axum_sessions::SessionLayer::new(store, secret);
-
-
 
     let key_holder = KeyHolder {
         key: Key::generate(),
