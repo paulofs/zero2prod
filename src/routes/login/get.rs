@@ -14,7 +14,10 @@ pub async fn login_form(cookiejar: CookieJar) -> impl IntoResponse {
     };
 
     (
-        [(axum::http::header::CONTENT_TYPE, "text/html; charset=UTF-8")],
+        [
+            (axum::http::header::CONTENT_TYPE, "text/html; charset=UTF-8"),
+            (axum::http::header::SET_COOKIE, "_flash=;Max-Age=0"),
+        ],
         Html(format!(
             r#"<!DOCTYPE html>
 <html lang="en">

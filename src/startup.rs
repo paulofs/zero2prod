@@ -12,6 +12,7 @@ use axum::{
     routing::{get, post, IntoMakeService},
     Extension, Router,
 };
+use axum_extra::extract::cookie::Key;
 use hyper::server::conn::AddrIncoming;
 use secrecy::Secret;
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -30,6 +31,11 @@ pub struct Application {
 
 #[derive(Clone)]
 pub struct ApplicationBaseUrl(pub String);
+
+#[derive(Clone)]
+struct KeyHolder {
+    key: Key,
+}
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
@@ -87,6 +93,10 @@ pub fn run(
     base_url: String,
     hmac_secret: Secret<String>,
 ) -> anyhow::Result<RunningServer> {
+    let key_holder = KeyHolder {
+        key: Key::generate(),
+    };
+
     let middleware = ServiceBuilder::new()
         .set_x_request_id(MakeRequestUuid)
         .layer(
@@ -112,7 +122,8 @@ pub fn run(
         .layer(Extension(email_client))
         .layer(Extension(ApplicationBaseUrl(base_url)))
         .layer(Extension(HmacSecret(hmac_secret.clone())))
-        .layer(middleware);
+        .layer(middleware)
+        .with_state(key_holder);
 
     let server = axum::Server::from_tcp(listener)?.serve(app.into_make_service());
     Ok(server)
