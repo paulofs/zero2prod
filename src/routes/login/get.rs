@@ -3,6 +3,7 @@ use axum::{
     response::{Html, IntoResponse},
 };
 use axum_extra::extract::CookieJar;
+// TODO discover how to use SignedCookieJar and PrivateCookieJar
 
 #[debug_handler]
 pub async fn login_form(cookiejar: CookieJar) -> impl IntoResponse {

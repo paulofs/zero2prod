@@ -8,13 +8,14 @@ use crate::{
     email_client::EmailClient,
     routes::{confirm, health_check, home, login, login_form, publish_newsletter, subscribe},
 };
+use async_redis_session::RedisSessionStore;
 use axum::{
     routing::{get, post, IntoMakeService},
     Extension, Router,
 };
 use axum_extra::extract::cookie::Key;
 use hyper::server::conn::AddrIncoming;
-use secrecy::Secret;
+use secrecy::{Secret, ExposeSecret};
 use sqlx::{postgres::PgPoolOptions, PgPool};
 use tower::ServiceBuilder;
 use tower_http::{
@@ -65,7 +66,9 @@ impl Application {
             email_client,
             configuration.application.base_url,
             configuration.application.hmac_secret,
-        )?;
+            configuration.redis_uri,
+        )
+        .await?;
 
         Ok(Self { port, server })
     }
@@ -86,13 +89,21 @@ pub fn get_connection_pool(configuration: &DatabaseSettings) -> PgPool {
 }
 
 pub type RunningServer = hyper::Server<AddrIncoming, IntoMakeService<Router>>;
-pub fn run(
+pub async fn run(
     listener: TcpListener,
     db_pool: PgPool,
     email_client: EmailClient,
     base_url: String,
     hmac_secret: Secret<String>,
+    redis_uri: Secret<String>,
 ) -> anyhow::Result<RunningServer> {
+    // let redis_store = RedisSessionStore::new(redis_uri.expose_secret().to_string())?;
+    let store = axum_sessions::async_session::MemoryStore::new();
+    let secret = b"123456789012345678901234567890ygufcvretrdf546sdcgtedecfvyuuit7xt";
+    let session_layer = axum_sessions::SessionLayer::new(store, secret);
+
+
+
     let key_holder = KeyHolder {
         key: Key::generate(),
     };
@@ -122,6 +133,7 @@ pub fn run(
         .layer(Extension(email_client))
         .layer(Extension(ApplicationBaseUrl(base_url)))
         .layer(Extension(HmacSecret(hmac_secret.clone())))
+        .layer(session_layer)
         .layer(middleware)
         .with_state(key_holder);
 
