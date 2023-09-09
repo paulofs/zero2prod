@@ -73,5 +73,19 @@ pub async fn change_password(
             AuthError::UnexpectedError(_) => e500(e).into_response(),
         };
     }
-    todo!()
+    crate::authentication::change_password(user_id, form.new_password, &db_pool)
+        .await
+        .map_err(e500)
+        .expect("Ooh, it failes");
+    (
+        axum::http::StatusCode::SEE_OTHER,
+        [
+            (axum::http::header::LOCATION, "/admin/password"),
+            (
+                axum::http::header::SET_COOKIE,
+                &format!("_flash={}", "Your password has been changed."),
+            ),
+        ],
+    )
+        .into_response()
 }
