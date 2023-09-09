@@ -1,4 +1,5 @@
 //! src/main.rs
+//! TODO: Require passwords to have > 12 characters and < 128 characters
 use zero2prod::{
     configuration::get_configuration,
     startup::Application,

@@ -6,14 +6,13 @@ use axum_extra::extract::CookieJar;
 // TODO discover how to use SignedCookieJar and PrivateCookieJar
 
 #[debug_handler]
-pub async fn login_form(cookiejar: CookieJar) -> impl IntoResponse {
-    let error_html = match cookiejar.get("_flash") {
+pub async fn login_form(jar: CookieJar) -> impl IntoResponse {
+    let error_html = match &jar.get("_flash") {
         None => "".into(),
         Some(cookie) => {
             format!("<p><i>{}</i></p>", cookie.value())
         }
     };
-
     (
         [
             (axum::http::header::CONTENT_TYPE, "text/html; charset=UTF-8"),

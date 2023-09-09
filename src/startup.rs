@@ -8,7 +8,7 @@ use crate::{
     email_client::EmailClient,
     routes::{
         admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
-        login_form, publish_newsletter, subscribe,
+        login_form, publish_newsletter, subscribe, log_out,
     },
 };
 use axum::{
@@ -132,6 +132,7 @@ pub async fn run(
         .route("/admin/dashboard", get(admin_dashboard))
         .route("/admin/password", get(change_password_form))
         .route("/admin/password", post(change_password))
+        .route("/admin/logout", post(log_out))
         .layer(Extension(db_pool))
         .layer(Extension(email_client))
         .layer(Extension(ApplicationBaseUrl(base_url)))
