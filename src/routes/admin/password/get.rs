@@ -1,17 +1,25 @@
 use axum::response::{Html, IntoResponse, Response};
+use axum_extra::extract::CookieJar;
 use axum_sessions::extractors::ReadableSession;
 
-pub async fn change_password_form(session: ReadableSession) -> Response {
+pub async fn change_password_form(session: ReadableSession, jar: CookieJar) -> Response {
     if session.get::<uuid::Uuid>("user_id").is_none() {
         return (
-                    axum::http::StatusCode::SEE_OTHER,
-                    [(axum::http::header::LOCATION, "/login")]
-               ).into_response();
+            axum::http::StatusCode::SEE_OTHER,
+            [(axum::http::header::LOCATION, "/login")],
+        )
+            .into_response();
     }
+    let msg_html = match jar.get("_flash") {
+        None => "".into(),
+        Some(cookie) => {
+            format!("<p><i>{}</i></p>", cookie.value())
+        }
+    };
     (
         axum::http::StatusCode::OK,
         [(axum::http::header::CONTENT_TYPE, "text/html; charset=UTF-8")],
-        Html(
+        Html(format!(
             r#"<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -19,6 +27,7 @@ pub async fn change_password_form(session: ReadableSession) -> Response {
     <title>Change Password</title>
 </head>
 <body>
+    {msg_html}
     <form action="/admin/password" method="post">
         <label>Current password
             <input
@@ -49,7 +58,7 @@ pub async fn change_password_form(session: ReadableSession) -> Response {
     <p><a href="/admin/dashboard">&lt;- Back</a></p>
 </body>
 </html>"#,
-        ),
+        )),
     )
         .into_response()
 }
