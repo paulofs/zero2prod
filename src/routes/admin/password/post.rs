@@ -89,3 +89,10 @@ pub async fn change_password(
     )
         .into_response()
 }
+/* TODO: Refactor
+async fn reject_anonymous_users(session: ReadableSession) -> Result<uuid::Uuid, StatusCode> {
+    match session.get::<uuid::Uuid>("user_id") {
+        Some(user_id) => Ok(user_id),
+        None => Err(axum::http::StatusCode::INTERNAL_SERVER_ERROR),
+    }
+}*/

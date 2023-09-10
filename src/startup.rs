@@ -7,15 +7,14 @@ use crate::{
     configuration::{DatabaseSettings, Settings},
     email_client::EmailClient,
     routes::{
-        admin_dashboard, change_password, change_password_form, confirm, health_check, home, login,
-        login_form, publish_newsletter, subscribe, log_out,
+        admin_dashboard, change_password, change_password_form, confirm, health_check, home,
+        log_out, login, login_form, publish_newsletter, subscribe,
     },
 };
 use axum::{
     routing::{get, post, IntoMakeService},
     Extension, Router,
 };
-use axum_extra::extract::cookie::Key;
 use hyper::server::conn::AddrIncoming;
 use secrecy::Secret;
 use sqlx::{postgres::PgPoolOptions, PgPool};
@@ -34,11 +33,6 @@ pub struct Application {
 
 #[derive(Clone)]
 pub struct ApplicationBaseUrl(pub String);
-
-#[derive(Clone)]
-struct KeyHolder {
-    key: Key,
-}
 
 impl Application {
     pub async fn build(configuration: Settings) -> Result<Self, anyhow::Error> {
@@ -104,10 +98,6 @@ pub async fn run(
     let secret = b"123456789012345678901234567890ygufcvretrdf546sdcgtedecfvyuuit7xt";
     let session_layer = axum_sessions::SessionLayer::new(store, secret);
 
-    let key_holder = KeyHolder {
-        key: Key::generate(),
-    };
-
     let middleware = ServiceBuilder::new()
         .set_x_request_id(MakeRequestUuid)
         .layer(
@@ -138,8 +128,7 @@ pub async fn run(
         .layer(Extension(ApplicationBaseUrl(base_url)))
         .layer(Extension(HmacSecret(hmac_secret.clone())))
         .layer(session_layer)
-        .layer(middleware)
-        .with_state(key_holder);
+        .layer(middleware);
 
     let server = axum::Server::from_tcp(listener)?.serve(app.into_make_service());
     Ok(server)

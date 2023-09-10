@@ -68,11 +68,13 @@ async fn current_password_must_be_valid() {
     .await;
 
     // Act - Part 2 - Try to change password
-    let response = app.post_change_password(&serde_json::json!({
-        "current_password": &wrong_password,
-        "new_password": &new_password,
-        "new_password_check": &new_password,
-    })).await;
+    let response = app
+        .post_change_password(&serde_json::json!({
+            "current_password": &wrong_password,
+            "new_password": &new_password,
+            "new_password_check": &new_password,
+        }))
+        .await;
 
     // Assert
     assert_is_redirect_to(&response, "/admin/password");
@@ -80,5 +82,4 @@ async fn current_password_must_be_valid() {
     // Act - Part 3 - Follow the redirect
     let html_page = app.get_change_password_html().await;
     assert!(html_page.contains("<p><i>The current password is incorrect.</i></p>"));
-
 }
